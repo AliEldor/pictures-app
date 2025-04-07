@@ -9,5 +9,18 @@ class LoginHistory extends Model
 {
     use HasFactory;
 
-    
+    protected $fillable = [
+        'user_id',
+        'ip_address',
+        'geolocation'
+    ];
+
+    protected $casts = [
+        'geolocation' => 'array'
+    ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 }
