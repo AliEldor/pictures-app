@@ -42,7 +42,7 @@ const Login = () => {
             localStorage.setItem('userName', response.data.user.full_name);
             localStorage.setItem('token',response.data.token)
         
-        navigate('/snippet');
+        navigate('/home');
         }
         else {
           console.log("Login failed:", response.data.message);
@@ -91,7 +91,7 @@ const Login = () => {
             />
           </form>
           <p className='reg'>
-            New to FAQ? <Link className='a' to="/register">Create an Account</Link>
+            New to PICs? <Link className='a' to="/register">Create an Account</Link>
           </p>
         </div>
       </div>
