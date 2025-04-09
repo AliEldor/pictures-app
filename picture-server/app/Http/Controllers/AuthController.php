@@ -14,7 +14,7 @@ class AuthController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'email' => 'required|email',
-            'password' => 'required|string|min:6',
+            'password' => 'required|string|min:3',
         ]);
 
         if ($validator->fails()) {
@@ -42,7 +42,9 @@ class AuthController extends Controller
 
         return response()->json([
             "success" => true,
-            "user" => $user
+            "message" => "Login successful",
+            "user" => $user,
+            "token" => $token
         ]);
     }
 
@@ -51,7 +53,7 @@ class AuthController extends Controller
         $validator = Validator::make($request->all(), [
             'full_name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
-            'password' => 'required|string|min:6',
+            'password' => 'required|string|min:3',
         ]);
 
         if ($validator->fails()) {
