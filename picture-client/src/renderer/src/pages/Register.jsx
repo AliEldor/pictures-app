@@ -37,7 +37,7 @@ const Register = () => {
     form.append("password", formData.password);
 
     try {
-        const response = await axios.post(`${BASE_URL}/v0.1/guest/signup`, form);
+        const response = await axios.post(`${BASE_URL}/v0.1/guest/register`, form);
         if (response.data.success) {
           console.log("Registration successful:", response.data);
           navigate("/");
