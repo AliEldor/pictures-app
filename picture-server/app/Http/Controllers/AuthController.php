@@ -1,85 +1,57 @@
 <?php
-
 namespace App\Http\Controllers;
-
-use App\Models\User;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth;
-use Illuminate\Support\Facades\Validator;
+use App\Http\Requests\LoginRequest;
+use App\Http\Requests\RegisterRequest;
+use App\Services\AuthService;
 
 class AuthController extends Controller
 {
-    function login(Request $request)
+    function login(LoginRequest $request)
     {
-        $validator = Validator::make($request->all(), [
-            'email' => 'required|email',
-            'password' => 'required|string|min:3',
-        ]);
-
-        if ($validator->fails()) {
+        $response = AuthService::login($request->validated());
+        if (isset($response['error'])) {
             return response()->json([
-                "message" => "Missing Fields",
-                "errors" => $validator->errors()
-            ], 422);
-        }
-
-        $credentials = [
-            "email" => $request["email"],
-            "password" => $request["password"]
-        ];
-
-        if (!Auth::attempt($credentials)) {
-            return response()->json([
-                "success" => false,
-                "error" => "Unauthorized"
+                'success' => false,
+                'error' => $response['error']
             ], 401);
         }
-
-        $user = Auth::user();
-        $token = JWTAuth::fromUser($user);
-        $user->token = $token;
-
-        return response()->json([
-            "success" => true,
-            "message" => "Login successful",
-            "user" => $user,
-            "token" => $token
-        ]);
-    }
-
-    function register(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'full_name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
-            'password' => 'required|string|min:3',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                "errors" => $validator->errors()
-            ], 422);
-        }
-
-        $user = new User;
-        $user->full_name = $request["full_name"];
-        $user->email = $request["email"];
-        $user->password = bcrypt($request["password"]);
-        $user->save();
-
-        return response()->json([
-            "success" => true
-        ]);
-    }
-
-    function logout()
-    {
-        Auth::logout();
+        
         
         return response()->json([
-            "success" => true,
-            "message" => "Successfully logged out"
-        ]);
+            'success' => true,
+            'user' => $response['user'],
+            'token' => $response['token']
+        ], 200);
+    }
+    
+    function register(RegisterRequest $request)
+    {
+        $response = AuthService::register($request->validated());
+        if (isset($response['error'])) {
+            return response()->json([
+                'success' => false,
+                'error' => $response['error']
+            ], 422);
+        }
+        
+        return response()->json([
+            'success' => true
+        ], 201);
+    }
+    
+    function logout()
+    {
+        $response = AuthService::logout();
+        if (isset($response['error'])) {
+            return response()->json([
+                'success' => false,
+                'error' => $response['error']
+            ], 500);
+        }
+        
+        return response()->json([
+            'success' => true,
+            'message' => $response['message']
+        ], 200);
     }
 }

@@ -1,57 +1,33 @@
 <?php
-
 namespace App\Http\Controllers;
-
-use App\Models\LoginHistory;
-use Illuminate\Http\Request;
+use App\Http\Requests\LoginHistoryRequest;
+use App\Services\LoginHistoryService;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Validator;
 
 class LoginHistoryController extends Controller
 {
-    public function store(Request $request)
+    function store(LoginHistoryRequest $request)
     {
-        $validator = Validator::make($request->all(), [
-            'latitude' => 'required|numeric|between:-90,90',
-            'longitude' => 'required|numeric|between:-180,180',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'errors' => $validator->errors()
-            ], 422);
+        $validated = $request->validated();
+        
+        if (!isset($validated['user_id'])) {
+            $validated['user_id'] = Auth::id();
         }
-
-        $user = Auth::user();
         
-        // create login history record
-        $loginHistory = LoginHistory::create([
-            'user_id' => $user->id,
-            'ip_address' => $request->ip(),
-            'geolocation' => json_encode([
-                'latitude' => $request->latitude,
-                'longitude' => $request->longitude
-            ])
-        ]);
-        
-        return response()->json([
-            'success' => true,
-            'data' => $loginHistory
-        ]);
+        $response = LoginHistoryService::store($validated);
+        if (isset($response['error'])) {
+            return $this->errorResponse($response, 422);
+        }
+        return $this->successResponse($response, 201);
     }
-
-
-    // get login history for authenticated user
-    public function getUserHistory()
+    
+    function getUserHistory()
     {
-        $user = Auth::user();
-        $loginHistory = LoginHistory::where('user_id', $user->id)
-            ->orderBy('created_at', 'desc')
-            ->get();
-            
-        return response()->json([
-            'success' => true,
-            'data' => $loginHistory
-        ]);
+        $userId = Auth::id();
+        $response = LoginHistoryService::getUserHistory($userId);
+        if (isset($response['error'])) {
+            return $this->errorResponse($response, 500);
+        }
+        return $this->successResponse($response, 200);
     }
 }
