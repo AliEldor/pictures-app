@@ -9,49 +9,27 @@ class AuthController extends Controller
     function login(LoginRequest $request)
     {
         $response = AuthService::login($request->validated());
-        if (isset($response['error'])) {
-            return response()->json([
-                'success' => false,
-                'error' => $response['error']
-            ], 401);
+        if (!$response['success']) {
+            return $this->errorResponse($response['error'], 401);
         }
-        
-        
-        return response()->json([
-            'success' => true,
-            'user' => $response['user'],
-            'token' => $response['token']
-        ], 200);
+        return $this->successResponse($response);
     }
     
     function register(RegisterRequest $request)
     {
         $response = AuthService::register($request->validated());
-        if (isset($response['error'])) {
-            return response()->json([
-                'success' => false,
-                'error' => $response['error']
-            ], 422);
+        if (!$response['success']) {
+            return $this->errorResponse($response['error'], 400);
         }
-        
-        return response()->json([
-            'success' => true
-        ], 201);
+        return $this->successResponse($response);
     }
     
     function logout()
     {
         $response = AuthService::logout();
-        if (isset($response['error'])) {
-            return response()->json([
-                'success' => false,
-                'error' => $response['error']
-            ], 500);
+        if (!$response['success']) {
+            return $this->errorResponse($response['error'], 500);
         }
-        
-        return response()->json([
-            'success' => true,
-            'message' => $response['message']
-        ], 200);
+        return $this->successResponse(['message' => 'Successfully logged out']);
     }
 }

@@ -8,26 +8,20 @@ class LoginHistoryController extends Controller
 {
     function store(LoginHistoryRequest $request)
     {
-        $validated = $request->validated();
-        
-        if (!isset($validated['user_id'])) {
-            $validated['user_id'] = Auth::id();
+        $response = LoginHistoryService::store($request->validated());
+        if (!$response['success']) {
+            return $this->errorResponse($response['error'], 400);
         }
-        
-        $response = LoginHistoryService::store($validated);
-        if (isset($response['error'])) {
-            return $this->errorResponse($response, 422);
-        }
-        return $this->successResponse($response, 201);
+        return $this->successResponse($response['data']);
     }
     
     function getUserHistory()
     {
         $userId = Auth::id();
         $response = LoginHistoryService::getUserHistory($userId);
-        if (isset($response['error'])) {
-            return $this->errorResponse($response, 500);
+        if (!$response['success']) {
+            return $this->errorResponse($response['error'], 500);
         }
-        return $this->successResponse($response, 200);
+        return $this->successResponse($response['data']);
     }
 }
