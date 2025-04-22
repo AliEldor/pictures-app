@@ -1,0 +1,19 @@
+{
+    "name": "gallery-chat-server",
+    "version": "1.0.0",
+    "description": "WebSocket chat server for the Gallery Electron app",
+    "main": "chatServer.js",
+    "scripts": {
+      "start": "node chatServer.js",
+      "dev": "nodemon chatServer.js"
+    },
+    "dependencies": {
+      "cors": "^2.8.5",
+      "express": "^4.18.2",
+      "mysql2": "^3.6.5",
+      "socket.io": "^4.7.2"
+    },
+    "devDependencies": {
+      "nodemon": "^3.0.2"
+    }
+  }
