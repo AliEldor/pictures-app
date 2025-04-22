@@ -7,7 +7,7 @@ import ImageCanvas from './ImageCanvas'
 import ImageCrop from './ImageCrop'
 
 const ImageEditor = ({ photo, onEdit, onClose }) => {
-  const [editorPhase, setEditorPhase] = useState('initial') 
+  const [editorPhase, setEditorPhase] = useState('initial')
   const [activeTab, setActiveTab] = useState('rotate')
   const [isProcessing, setIsProcessing] = useState(false)
   const [error, setError] = useState('')
