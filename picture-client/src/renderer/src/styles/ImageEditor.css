@@ -391,3 +391,115 @@
     border: 1px solid #eee;
   }
   
+  /* Styles for the new wizard and phased approach */
+
+.edit-wizard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  text-align: center;
+}
+
+.edit-wizard h3 {
+  margin-bottom: 10px;
+  color: #333;
+}
+
+.edit-wizard p {
+  margin-bottom: 20px;
+  color: #666;
+  max-width: 600px;
+}
+
+.wizard-preview {
+  margin: 20px 0;
+  padding: 10px;
+  background-color: #f5f5f5;
+  border-radius: 8px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+  width: 100%;
+}
+
+.wizard-preview img {
+  max-width: 100%;
+  max-height: 300px;
+  object-fit: contain;
+  border-radius: 4px;
+}
+
+.wizard-actions {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.skip-btn {
+  background-color: #e0e0e0;
+  color: #333;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background-color 0.2s;
+}
+
+.skip-btn:hover {
+  background-color: #d0d0d0;
+}
+
+.crop-btn {
+  background-color: #2196F3;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background-color 0.2s;
+}
+
+.crop-btn:hover {
+  background-color: #1976D2;
+}
+
+.crop-editor {
+  margin: 20px 0;
+  padding: 10px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+}
+
+/* Loading indicator for crop component */
+.loading-indicator {
+  text-align: center;
+  padding: 20px;
+  color: #666;
+}
+
+/* Improved crop message */
+.crop-message {
+  margin: 15px 0;
+  padding: 10px;
+  background-color: #e8f5e9;
+  border-radius: 4px;
+  color: #2e7d32;
+  text-align: center;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .wizard-actions {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .crop-btn, .skip-btn {
+    width: 100%;
+  }
+}

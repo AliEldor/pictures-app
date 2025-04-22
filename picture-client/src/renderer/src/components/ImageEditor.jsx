@@ -1,60 +1,69 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, useCallback } from 'react'
 import '../styles/ImageEditor.css'
+import RotateImage from './RotateImage'
+import WatermarkImage from './WatermarkImage'
+import BlackWhiteImage from './BlackWhiteImage'
+import ImageCanvas from './ImageCanvas'
+import ImageCrop from './ImageCrop'
 
 const ImageEditor = ({ photo, onEdit, onClose }) => {
+  const [editorPhase, setEditorPhase] = useState('initial') 
   const [activeTab, setActiveTab] = useState('rotate')
-
-  // Image manipulation states
   const [isProcessing, setIsProcessing] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
-  // Canvas refs for image manipulation
   const canvasRef = useRef(null)
   const imageRef = useRef(null)
-
-  const [rotationAngle, setRotationAngle] = useState(0)
-  const [watermarkText, setWatermarkText] = useState('')
-  const [watermarkOptions, setWatermarkOptions] = useState({
-    position: 'bottomRight',
-    fontSize: 20,
-    color: 'rgba(255, 255, 255, 0.7)'
-  })
+  const [imageUrl, setImageUrl] = useState('')
 
   useEffect(() => {
-    const loadImage = async () => {
-      try {
-        const img = new Image()
-        img.crossOrigin = 'Anonymous'
-
-        img.onload = () => {
-          imageRef.current = img
-          if (canvasRef.current) {
-            drawImageToCanvas(img)
-          }
-        }
-
-        img.onerror = (e) => {
-          console.error('Failed to load image:', e)
-          setError('Failed to load image. Please try again.')
-        }
-
-        // Handle different path formats
-        if (photo.relativePath) {
-          img.src = photo.relativePath
-        } else if (photo.imageUrl) {
-          img.src = photo.imageUrl
-        } else {
-          setError('Image path not found')
-        }
-      } catch (err) {
-        console.error('Error loading image:', err)
-        setError('Failed to load image: ' + (err.message || 'Unknown error'))
-      }
+    // Set the image url from photo props
+    if (photo.relativePath) {
+      setImageUrl(photo.relativePath)
+    } else if (photo.imageUrl) {
+      setImageUrl(photo.imageUrl)
+    } else {
+      setError('Image path not found')
     }
-
-    loadImage()
   }, [photo])
+
+  // Load image into canvas when entering edit phase
+  useEffect(() => {
+    if (editorPhase === 'edit') {
+      loadImageToCanvas()
+    }
+  }, [editorPhase])
+
+  // Load image into canvas
+  const loadImageToCanvas = async () => {
+    try {
+      setIsProcessing(true)
+
+      const img = new Image()
+      img.crossOrigin = 'Anonymous'
+
+      img.onload = () => {
+        imageRef.current = img
+        if (canvasRef.current) {
+          drawImageToCanvas(img)
+        }
+        setIsProcessing(false)
+      }
+
+      img.onerror = (e) => {
+        console.error('Failed to load image:', e)
+        setError('Failed to load image. Please try again.')
+        setIsProcessing(false)
+      }
+
+      img.src = imageUrl
+    } catch (err) {
+      console.error('Error loading image:', err)
+      setError('Failed to load image: ' + (err.message || 'Unknown error'))
+      setIsProcessing(false)
+    }
+  }
 
   // Draw current image to canvas
   const drawImageToCanvas = (image) => {
@@ -74,7 +83,6 @@ const ImageEditor = ({ photo, onEdit, onClose }) => {
       canvas.height = image.height
 
       ctx.clearRect(0, 0, canvas.width, canvas.height)
-
       ctx.drawImage(image, 0, 0, canvas.width, canvas.height)
 
       return canvas
@@ -84,7 +92,71 @@ const ImageEditor = ({ photo, onEdit, onClose }) => {
     }
   }
 
-  const applyRotation = () => {
+  const handleCropComplete = async (cropData) => {
+    if (!cropData) {
+      setError('Invalid crop data')
+      return
+    }
+
+    setIsProcessing(true)
+    setError('')
+
+    try {
+      const img = new Image()
+      img.crossOrigin = 'Anonymous'
+
+      img.onload = () => {
+        // Create a temporary canvas for cropping
+        const tempCanvas = document.createElement('canvas')
+        const tempCtx = tempCanvas.getContext('2d')
+
+        // Set the canvas size to the crop dimensions
+        tempCanvas.width = cropData.width
+        tempCanvas.height = cropData.height
+
+        tempCtx.drawImage(
+          img,
+          cropData.x,
+          cropData.y,
+          cropData.width,
+          cropData.height,
+          0,
+          0,
+          cropData.width,
+          cropData.height
+        )
+
+        const croppedImageUrl = tempCanvas.toDataURL('image/png')
+
+        // Update the image URL to the cropped version
+        setImageUrl(croppedImageUrl)
+
+        // Move to the edit phase
+        setEditorPhase('edit')
+        setSuccess('Image cropped successfully')
+        setIsProcessing(false)
+      }
+
+      img.onerror = (e) => {
+        console.error('Error loading image for crop:', e)
+        setError('Failed to load image for cropping')
+        setIsProcessing(false)
+      }
+
+      img.src = imageUrl
+    } catch (err) {
+      console.error('Error cropping image:', err)
+      setError('Failed to crop image: ' + (err.message || 'Unknown error'))
+      setIsProcessing(false)
+    }
+  }
+
+  const handleSkipCrop = () => {
+    setEditorPhase('edit')
+  }
+
+  // Apply rotation
+  const applyRotation = useCallback((rotationAngle) => {
     if (!imageRef.current || !canvasRef.current || rotationAngle === 0) return
 
     setIsProcessing(true)
@@ -133,7 +205,6 @@ const ImageEditor = ({ photo, onEdit, onClose }) => {
         ctx.clearRect(0, 0, canvas.width, canvas.height)
         ctx.drawImage(rotatedImage, 0, 0)
 
-        setRotationAngle(0)
         setSuccess('Image rotated successfully')
         setIsProcessing(false)
       }
@@ -144,9 +215,10 @@ const ImageEditor = ({ photo, onEdit, onClose }) => {
       setError('Failed to rotate image')
       setIsProcessing(false)
     }
-  }
+  }, [])
 
-  const applyBlackAndWhite = () => {
+  // Apply black and white effect
+  const applyBlackAndWhite = useCallback(() => {
     if (!imageRef.current || !canvasRef.current) return
 
     setIsProcessing(true)
@@ -188,10 +260,10 @@ const ImageEditor = ({ photo, onEdit, onClose }) => {
       setError('Failed to convert to black and white')
       setIsProcessing(false)
     }
-  }
+  }, [])
 
   // Apply watermark
-  const applyWatermark = () => {
+  const applyWatermark = useCallback((watermarkText, watermarkOptions) => {
     if (!imageRef.current || !canvasRef.current || !watermarkText.trim()) {
       if (!watermarkText.trim()) {
         setError('Please enter watermark text')
@@ -253,10 +325,14 @@ const ImageEditor = ({ photo, onEdit, onClose }) => {
       setError('Failed to add watermark')
       setIsProcessing(false)
     }
-  }
+  }, [])
 
-  // Save all changes - Direct conversion from canvas to buffer
   const handleSave = async () => {
+    if (editorPhase === 'crop') {
+      setEditorPhase('edit')
+      return
+    }
+
     if (!canvasRef.current) {
       setError('No image data available')
       return
@@ -266,10 +342,8 @@ const ImageEditor = ({ photo, onEdit, onClose }) => {
     setError('')
 
     try {
-      // Get the final image data from canvas as base64
       const imageDataUrl = canvasRef.current.toDataURL('image/png')
 
-      // Extract original filename without extension
       const origFileName = photo.name || 'image'
       const fileExt = origFileName.includes('.')
         ? origFileName.substring(origFileName.lastIndexOf('.'))
@@ -278,30 +352,28 @@ const ImageEditor = ({ photo, onEdit, onClose }) => {
         ? origFileName.substring(0, origFileName.lastIndexOf('.'))
         : origFileName
 
-      // Create a timestamp for the edited image
       const timestamp = Date.now()
 
-      // Generate an appropriate edit indicator based on which tab was used
-      let editType = ''
-      if (activeTab === 'rotate' && rotationAngle !== 0) {
-        editType = 'rotated'
-      } else if (activeTab === 'watermark' && watermarkText.trim() !== '') {
-        editType = 'watermarked'
-      } else if (activeTab === 'blackWhite') {
-        editType = 'bw'
-      } else {
-        editType = 'edited'
-      }
+      // Generate an edit indicator based on which tab was used
+      let editType =
+        editorPhase === 'crop'
+          ? 'cropped'
+          : activeTab === 'rotate'
+            ? 'rotated'
+            : activeTab === 'watermark'
+              ? 'watermarked'
+              : activeTab === 'blackWhite'
+                ? 'bw'
+                : 'edited'
 
       // Create a new file name that includes the original name and edit type
       const newFileName = `${baseName}_${editType}_${timestamp}${fileExt}`
 
       if (window.api && window.api.uploadImage) {
         const base64Data = imageDataUrl.split(',')[1]
-
         const binaryData = atob(base64Data)
-
         const array = new Uint8Array(binaryData.length)
+
         for (let i = 0; i < binaryData.length; i++) {
           array[i] = binaryData.charCodeAt(i)
         }
@@ -311,7 +383,7 @@ const ImageEditor = ({ photo, onEdit, onClose }) => {
 
         console.log('Uploading edited image as:', newFileName)
 
-        // upload as a new image using the upload api
+        // Upload as a new image
         const result = await window.api.uploadImage(arrayBuffer, newFileName)
         console.log('Upload result:', result)
 
@@ -324,7 +396,6 @@ const ImageEditor = ({ photo, onEdit, onClose }) => {
             createdAt: new Date().toISOString()
           }
 
-          // Send update to parent component
           onEdit(updatedPhoto)
           setSuccess('Changes saved successfully')
 
@@ -333,7 +404,7 @@ const ImageEditor = ({ photo, onEdit, onClose }) => {
           throw new Error('Failed to save image')
         }
       } else {
-        // Fallback
+        // Fallback val
         const updatedPhoto = {
           id: `edited_${Date.now()}`,
           name: newFileName,
@@ -358,6 +429,17 @@ const ImageEditor = ({ photo, onEdit, onClose }) => {
   // Reset to original image
   const resetImage = () => {
     try {
+      if (editorPhase === 'crop') {
+        // if in crop phase, just restart the crop process
+        if (photo.relativePath) {
+          setImageUrl(photo.relativePath)
+        } else if (photo.imageUrl) {
+          setImageUrl(photo.imageUrl)
+        }
+        setEditorPhase('initial')
+        return
+      }
+
       const img = new Image()
       img.crossOrigin = 'Anonymous'
 
@@ -367,16 +449,92 @@ const ImageEditor = ({ photo, onEdit, onClose }) => {
         setSuccess('Image reset to original')
       }
 
-      // Use the original image url
-      if (photo.relativePath) {
-        img.src = photo.relativePath
-      } else if (photo.imageUrl) {
-        img.src = photo.imageUrl
-      }
+      img.src = imageUrl
     } catch (err) {
       console.error('Error resetting image:', err)
       setError('Failed to reset image')
     }
+  }
+
+  // set the canvas ref
+  const setCanvasRef = (ref) => {
+    canvasRef.current = ref.current
+  }
+
+  // wizard screen
+  if (editorPhase === 'initial') {
+    return (
+      <div className="modal-overlay" onClick={onClose}>
+        <div className="modal-content edit-photo-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-header">
+            <h2>Edit Photo</h2>
+            <button className="close-btn" onClick={onClose}>
+              &times;
+            </button>
+          </div>
+
+          <div className="edit-wizard">
+            <h3>Would you like to crop this image first?</h3>
+            <p>Cropping your image before applying other edits is often recommended.</p>
+
+            <div className="wizard-preview">
+              <img src={imageUrl} alt="Preview" style={{ maxHeight: '300px', maxWidth: '100%' }} />
+            </div>
+
+            <div className="wizard-actions">
+              <button className="skip-btn" onClick={handleSkipCrop} disabled={isProcessing}>
+                Skip Cropping
+              </button>
+              <button
+                className="crop-btn"
+                onClick={() => setEditorPhase('crop')}
+                disabled={isProcessing}
+              >
+                Crop Image
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  //  crop phase
+  if (editorPhase === 'crop') {
+    return (
+      <div className="modal-overlay" onClick={onClose}>
+        <div className="modal-content edit-photo-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-header">
+            <h2>Crop Photo</h2>
+            <button className="close-btn" onClick={onClose}>
+              &times;
+            </button>
+          </div>
+
+          {error && <div className="error-message">{error}</div>}
+          {success && <div className="success-message">{success}</div>}
+
+          <div className="crop-editor">
+            <ImageCrop
+              imageUrl={imageUrl}
+              onCropComplete={handleCropComplete}
+              onCancel={() => setEditorPhase('edit')}
+            />
+          </div>
+
+          <div className="modal-actions">
+            <button
+              type="button"
+              className="skip-btn"
+              onClick={handleSkipCrop}
+              disabled={isProcessing}
+            >
+              Skip Cropping
+            </button>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -418,119 +576,24 @@ const ImageEditor = ({ photo, onEdit, onClose }) => {
 
         <div className="editor-layout">
           <div className="canvas-section">
-            <div className="canvas-container">
-              <canvas ref={canvasRef} className="edit-canvas" />
-            </div>
+            <ImageCanvas imageRef={imageRef} setCanvasRef={setCanvasRef} />
           </div>
 
           <div className="controls-section">
             <div className="tab-content">
               {activeTab === 'rotate' && (
-                <div className="rotate-tab">
-                  <div className="form-group">
-                    <label htmlFor="rotation">Rotation Angle (degrees)</label>
-                    <input
-                      type="number"
-                      id="rotation"
-                      value={rotationAngle}
-                      onChange={(e) => setRotationAngle(Number(e.target.value))}
-                      min="-360"
-                      max="360"
-                      disabled={isProcessing}
-                    />
-                  </div>
-
-                  <div className="rotation-presets">
-                    <button
-                      type="button"
-                      onClick={() => setRotationAngle(90)}
-                      disabled={isProcessing}
-                    >
-                      90°
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setRotationAngle(180)}
-                      disabled={isProcessing}
-                    >
-                      180°
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setRotationAngle(270)}
-                      disabled={isProcessing}
-                    >
-                      270°
-                    </button>
-                  </div>
-
-                  <button
-                    type="button"
-                    className="apply-btn"
-                    onClick={applyRotation}
-                    disabled={isProcessing || rotationAngle === 0}
-                  >
-                    {isProcessing ? 'Applying...' : 'Apply Rotation'}
-                  </button>
-                </div>
+                <RotateImage isProcessing={isProcessing} applyRotation={applyRotation} />
               )}
 
               {activeTab === 'watermark' && (
-                <div className="watermark-tab">
-                  <div className="form-group">
-                    <label htmlFor="watermarkText">Watermark Text</label>
-                    <input
-                      type="text"
-                      id="watermarkText"
-                      value={watermarkText}
-                      onChange={(e) => setWatermarkText(e.target.value)}
-                      placeholder="Enter watermark text"
-                      disabled={isProcessing}
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label htmlFor="watermarkPosition">Position</label>
-                    <select
-                      id="watermarkPosition"
-                      value={watermarkOptions.position}
-                      onChange={(e) =>
-                        setWatermarkOptions({
-                          ...watermarkOptions,
-                          position: e.target.value
-                        })
-                      }
-                      disabled={isProcessing}
-                    >
-                      <option value="bottomRight">Bottom Right</option>
-                      <option value="center">Center</option>
-                      <option value="topLeft">Top Left</option>
-                    </select>
-                  </div>
-
-                  <button
-                    type="button"
-                    className="apply-btn"
-                    onClick={applyWatermark}
-                    disabled={isProcessing || !watermarkText.trim()}
-                  >
-                    {isProcessing ? 'Applying...' : 'Apply Watermark'}
-                  </button>
-                </div>
+                <WatermarkImage isProcessing={isProcessing} applyWatermark={applyWatermark} />
               )}
 
               {activeTab === 'blackWhite' && (
-                <div className="black-white-tab">
-                  <p>Convert this image to black and white.</p>
-                  <button
-                    type="button"
-                    className="apply-btn"
-                    onClick={applyBlackAndWhite}
-                    disabled={isProcessing}
-                  >
-                    {isProcessing ? 'Converting...' : 'Convert to Black & White'}
-                  </button>
-                </div>
+                <BlackWhiteImage
+                  isProcessing={isProcessing}
+                  applyBlackAndWhite={applyBlackAndWhite}
+                />
               )}
             </div>
           </div>

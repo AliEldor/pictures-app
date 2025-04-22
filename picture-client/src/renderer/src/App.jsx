@@ -1,8 +1,9 @@
 import React from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import Home from './pages/Home';
+import Gallery from './pages/Gallery';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import 'react-image-crop/dist/ReactCrop.css';
 
 
 const ProtectedRoute = ({ children }) => {
@@ -23,17 +24,18 @@ const App = () => {
         <Route path="/register" element={<Register />} />
         
         {/* Protected routes */}
-        <Route path="/home" element={
+        <Route path="/gallery" element={
           <ProtectedRoute>
-            <Home />
+            <Gallery />
           </ProtectedRoute>
         } />
         
-        {/* Redirect root to pictures page */}
-        <Route path="/" element={<Navigate to="/home" replace />} />
+        {/* Redirect root to gallery page */}
+        <Route path="/" element={<Navigate to="/gallery" replace />} />
+        <Route path="/home" element={<Navigate to="/gallery" replace />} />
         
-        {/* Redirect any unknown routes to pictures page */}
-        <Route path="*" element={<Navigate to="/home" replace />} />
+        {/* Redirect any unknown routes to gallery page */}
+        <Route path="*" element={<Navigate to="/gallery" replace />} />
       </Routes>
     </Router>
     </>

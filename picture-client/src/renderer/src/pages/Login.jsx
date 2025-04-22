@@ -1,8 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
-import "../styles/index.css"
-import BASE_URL from "../config/config"
+import "../styles/index.css";
+import BASE_URL from "../config/config";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -14,6 +14,14 @@ const Login = () => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  // Check if user is already logged in
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      navigate('/gallery');
+    }
+  }, [navigate]);
+
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -24,7 +32,6 @@ const Login = () => {
   // Get location data from ipapi
   const getLocationData = async () => {
     try {
-      
       const response = await fetch('https://ipapi.co/json/');
       if (!response.ok) {
         throw new Error('Network response was not ok');
@@ -41,14 +48,13 @@ const Login = () => {
       console.error('Error fetching location data:', error);
       // Fallback func
       return {
-        ip_address: '77.75.90.180',
-        latitude: 33.11025,
-        longitude: -74.0060
+        ip_address: '127.0.0.1',
+        latitude: 0,
+        longitude: 0
       };
     }
   };
 
-  
   const saveLoginHistory = async (userId, token) => {
     try {
       // Get real location data
@@ -82,7 +88,6 @@ const Login = () => {
       return true;
     } catch (error) {
       console.error('Failed to save login history:', error.response?.data || error);
-      
       return false;
     }
   };
@@ -119,7 +124,7 @@ const Login = () => {
           }
           
           setIsLoading(false);
-          navigate('/home');
+          navigate('/gallery');
         }
         else {
           console.log("Login failed:", response.data.message);
@@ -138,7 +143,7 @@ const Login = () => {
     <div className='login-outer-container'>
       <div className='login-container'>
         <div className='login-area'>
-          <h3>LOGIN TO Gallery</h3>
+          <h3>LOGIN TO Photo Editor</h3>
           {error && <div className="error-message" style={{ color: 'red', marginBottom: '10px' }}>{error}</div>}
           <form id="login-form" className='login-items' onSubmit={handleSubmit}>
             <label htmlFor="email">Email</label>
@@ -171,12 +176,12 @@ const Login = () => {
             />
           </form>
           <p className='reg'>
-            New to PICs? <Link className='a' to="/register">Create an Account</Link>
+            New to Photo Editor? <Link className='a' to="/register">Create an Account</Link>
           </p>
         </div>
       </div>
     </div>
-  )
+  );
 };
 
 export default Login;

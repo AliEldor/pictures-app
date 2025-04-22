@@ -1,11 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
+import "../styles/index.css";
 import BASE_URL from "../config/config";
 
 const Register = () => {
-
-    const navigate = useNavigate();
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     full_name: "",
     email: "",
@@ -13,6 +13,15 @@ const Register = () => {
   });
 
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Check if user is already logged in
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      navigate('/gallery');
+    }
+  }, [navigate]);
 
   const handleChange = (e) => {
     setFormData({
@@ -21,50 +30,53 @@ const Register = () => {
     });
   };
 
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setIsLoading(true);
 
     if (!formData.full_name || !formData.email || !formData.password) {
-        setError("Please fill in all fields");
-        return;
-      }
+      setError("Please fill in all fields");
+      setIsLoading(false);
+      return;
+    }
 
-      const form = new FormData();
+    const form = new FormData();
     form.append("full_name", formData.full_name);
     form.append("email", formData.email);
     form.append("password", formData.password);
 
     try {
-        const response = await axios.post(`${BASE_URL}/v0.1/guest/register`, form);
-        if (response.data.success) {
-          console.log("Registration successful:", response.data);
-          navigate("/");
-        } else {
-          console.error("Registration failed:", response.data.message);
-          setError(response.data.message);
-        }
-      } catch (error) {
-        console.error(
-          "Registration error:",
-          error.response?.data || error.message
-        );
-        if (error.response?.data?.message) {
-          setError(error.response.data.message);
-        } else {
-          setError("Server error. Please try again later.");
-        }
+      const response = await axios.post(`${BASE_URL}/v0.1/guest/register`, form);
+      if (response.data.success) {
+        console.log("Registration successful:", response.data);
+        setIsLoading(false);
+        navigate("/login");
+      } else {
+        console.error("Registration failed:", response.data.message);
+        setError(response.data.message);
+        setIsLoading(false);
       }
-    };
-
+    } catch (error) {
+      console.error(
+        "Registration error:",
+        error.response?.data || error.message
+      );
+      if (error.response?.data?.message) {
+        setError(error.response.data.message);
+      } else {
+        setError("Server error. Please try again later.");
+      }
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="login-outer-container">
       <div className="login-container">
         <div className="login-area">
-          <h3>REGISTER TO Gallery</h3>
-          {error && <div className="error-message">{error}</div>}
+          <h3>REGISTER TO Photo Editor</h3>
+          {error && <div className="error-message" style={{ color: 'red', marginBottom: '10px' }}>{error}</div>}
           <form
             id="register-form"
             className="login-items"
@@ -79,6 +91,7 @@ const Register = () => {
               value={formData.full_name}
               onChange={handleChange}
               required
+              disabled={isLoading}
             />
             <label htmlFor="email">Email</label>
             <input
@@ -89,6 +102,7 @@ const Register = () => {
               value={formData.email}
               onChange={handleChange}
               required
+              disabled={isLoading}
             />
             <label htmlFor="password">Password</label>
             <input
@@ -99,8 +113,14 @@ const Register = () => {
               value={formData.password}
               onChange={handleChange}
               required
+              disabled={isLoading}
             />
-            <input type="submit" className="login-btn" value="Register" />
+            <input 
+              type="submit" 
+              className="login-btn" 
+              value={isLoading ? "Registering..." : "Register"} 
+              disabled={isLoading}
+            />
           </form>
           <p className="reg">
             Already have an account?
@@ -111,7 +131,7 @@ const Register = () => {
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default Register
+export default Register;
